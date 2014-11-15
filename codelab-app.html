@@ -1,0 +1,213 @@
+<!-- Holy links/imports Batman! These are a bunch of component related imports, as a side note: I <3 Bower. -->
+<link rel="import" href="bower_components/polymer/polymer.html">
+<link rel="import" href="bower_components/font-roboto/roboto.html">
+<link rel="import" href="bower_components/core-drawer-panel/core-drawer-panel.html">
+<link rel="import" href="bower_components/core-header-panel/core-header-panel.html">
+<link rel="import" href="bower_components/core-toolbar/core-toolbar.html">
+<link rel="import" href="bower_components/core-icons/core-icons.html">
+<link rel="import" href="bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="bower_components/core-localstorage/core-localstorage.html">
+<link rel="import" href="bower_components/core-item/core-item.html">
+<link rel="import" href="bower_components/paper-toggle-button/paper-toggle-button.html">
+<link rel="import" href="bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="bower_components/paper-slider/paper-slider.html">
+<link rel="import" href="bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="bower_components/paper-button/paper-button.html">
+<link rel="import" href="bower_components/paper-shadow/paper-shadow.html">
+<link rel="import" href="bower_components/paper-ripple/paper-ripple.html">
+
+<!-- Owr own webcomponent! The key elements here are the `template` and `script` contained within.
+  the `name` attribute assigned to the polymer-element becomes the HTML tag we use when imported. -->
+<polymer-element name="codelab-app">
+
+  <!-- The `template` becomes the contents of the HTML tags shadow-dom when we use it. -->
+  <template>
+
+    <!-- We're linking to a stylesheet like normal, but because it's done within a template it
+      actually gets re-written to scope it to this custom tag. This mostly amounts to prefixing
+      each of the styles with the element, but also involves some interpretation of :host() etc. -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- These are some components we imported above. `narrow` is set to when the screen is too thin. -->
+    <core-drawer-panel responsiveWidth="600px" id="drawerPanel" narrow="{{narrow}}">
+
+      <!-- `mode="waterfall"` adds a shadow under certain conditions. When covering other content. -->
+      <core-header-panel drawer mode="waterfall">
+
+        <!-- This little piece of mustache makes the headers take more space when the screen is 'not narrow' -->
+        <core-toolbar class="{{ {tall : !narrow} | tokenList }}">
+          Menu
+        </core-toolbar>
+        <core-item>
+          <label flex>Fade out selected</label>
+          <paper-toggle-button class="blue" checked="{{fadeSelected}}"></papter-toggle-button>
+        </core-item>
+        <core-item>
+          <label flex>Delete selected</label>
+          <paper-icon-button icon="delete" on-click="{{delete}}"></paper-icon-button>
+        </core-item>
+        <core-item>
+          <div center horizontal layout>
+            <div>Font size</div>
+            <paper-slider value="{{fontSize}}" max="32" editable></paper-slider>
+          </div>
+        </core-item>
+        <core-item>
+          <paper-button raised class="colored" on-click="{{reset}}">
+            reset
+          </paper-button>
+        </core-item>
+
+        <!-- This `toast` item is hidden by default, but has a `.show()` function to make it pop. -->
+        <paper-toast id="toast" class="capsule" text="Settings have been reset!" duration="800"></paper-toast>
+      </core-header-panel>
+
+      <core-header-panel main mode="waterfall">
+        <core-toolbar class="{{ {tall : !narrow} | tokenList }}">
+
+          <!-- `on-click` is like `onclick`, except it... well... I'm just gonna quote them:
+            Polymer supports declarative binding of events to methods in the component. It uses special
+            on-event syntax to trigger this binding behavior. Learn more about declarative event mapping:
+            https://www.polymer-project.org/docs/polymer/polymer.html#declarative-event-mapping
+
+            More precicely, this will run a given function when it's clicked. It should be enclosed in
+            moustaches ({{}}) to scope it to the item at hand. -->
+          <paper-icon-button icon="menu" on-click="{{toggleDrawer}}"></paper-icon-button>
+
+          <!-- `flex` is a property that allows the element to fill empty space, so this pushes the later
+            elements over to the side.-->
+          <span flex>My notes</span>
+
+          <paper-icon-button icon="search"></paper-icon-button>
+          <paper-icon-button icon="more-vert"></paper-icon-button>
+
+          <!-- `fab` = 'floating action button' -->
+          <paper-fab icon="icons:add" on-click="{{showNewNoteInput}}"></paper-fab>
+        </core-toolbar>
+
+        <!-- Don't think this is some magic, it's just a normal attribute with a variable value. -->
+        <div class="content" data-fade-selected="{{fadeSelected}}">
+          <!-- This stuff is slightly 'magic', `value` is a two way bind. `on-change` I only detects
+            changes when you leave the element/press enter. -->
+          <paper-input id="newNoteInput"
+            floatingLabel
+            label="Add a new note"
+            on-change="{{add}}"
+            value="{{newNote}}"></paper-input>
+
+          <!-- Repeat! Repeat! the `repeat` attribute must be used on `template` elements.
+            The contents of this element will be repeated for each item in the thing it loops over.
+            It's a for loop.
+
+            If you don't like namespacing then:
+              * You're a bad person, shame, SHAME!
+              * you can just use `{{data}}`, and the elements of the objects will not be namespaced.
+                i.e. `done` instead of `item.done`
+
+            As an aside, you can also use template elements to do `if` statements: `if="{{conditional}}"` -->
+          <template repeat="{{item in data}}">
+            <!-- `data-done` isn't magic, it's just a normal attribute with a varible value.
+              This makes it fade out because we have CSS that makes elements with that set to "true" fade out -->
+            <div center horizontal layout class="item" data-done="{{item.done}}">
+
+              <!-- We need to manually trigger the `dataChanged` event because we're changing a child object.
+                See the notes on the function bellow. -->
+              <paper-checkbox checked="{{item.done}}" on-change="{{dataChanged}}"></paper-checkbox>
+
+              <!-- This gives elements a shdow with a 'z depth' of 2. -->
+              <paper-shadow z="2">
+                <div flex class="card">
+                  <p>{{item.body}}</p>
+
+                  <!-- This element just needs to exist within the element you want to apply it to. -->
+                  <paper-ripple class="recenteringTouch" fit></paper-ripple>
+                </div>
+              </paper-shadow>
+            </div>
+          </template>
+        </div>
+
+      </core-header-panel>
+
+      <!-- Little bit more magic. This provides an abstraction against local storage mechanics.
+        What gets saved is whatever is the `value`. -->
+      <core-localstorage id="storage" name="codelab-app-storage" value="{{data}}"></core-localstorage>
+    </core-drawer-panel>
+  </template>
+
+  <!-- This `script`, like the `template` is scoped to the element it's contained in. Specifically `this`. -->
+  <script>
+
+    // `Polymer` is what we use to add things to the scope of the element.
+    Polymer({
+
+      // Things you add to the elements scope don't need to be functions :P
+      data: [],
+
+      // Moar magic! `xxxChanged` is automatically provided for scope element `xxx`.
+      // However this can't detect changes of child objects, ie: `data[0].done = true`.
+      dataChanged: function() {
+        this.$.storage.save();
+      },
+
+      fontSize: 14,
+
+      fontSizeChanged: function() {
+
+        // We have to query the shadowRoot here, because the cards are in the shadow-dom.
+        var cards = this.shadowRoot.querySelectorAll('.card');
+        for (var i = 0; i < cards.length; i++) {
+          cards[i].style.fontSize = this.fontSize + 'px';
+        }
+      },
+
+      reset: function() {
+
+        // These automatically trigger the necessary events on their own.
+        this.fontSize = 14;
+        this.fadeSelected = false;
+
+        // This function already exists on the toast thingy.
+        this.$.toast.show();
+      },
+
+      add: function() {
+        if (this.newNote) {
+          this.data.unshift({
+            body: this.newNote,
+            done: false
+          });
+          this.$.newNoteInput.style.display = 'none';
+          this.$.newNoteInput.value = null;
+        }
+      },
+
+      // This replaces the data array with one missing anything marked as `done`.
+      delete: function () {
+        this.data = this.data.filter(function(item) {
+          return !item.done;
+        })
+      },
+
+      // This is the `toggleDrawer` item we use above in the `on-click` attribute for the menu icon.
+      toggleDrawer: function() {
+
+        // `this.$.someId` is how you can reference items within the element's scope by their ID.
+        // The `togglePanel` function/method is declared elsewhere in one of our imports on the `core-drawer-panel`
+        this.$.drawerPanel.togglePanel();
+      },
+
+      // Magic! This is automatically hooked once Polymer is ready.
+      ready: function() {
+        this.$.newNoteInput.style.display = 'none';
+      },
+
+      showNewNoteInput: function() {
+        this.$.newNoteInput.style.display = 'block';
+      }
+    });
+  </script>
+</polymer-element>

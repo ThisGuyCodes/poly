@@ -1,0 +1,33 @@
+<!doctype html>
+
+<html>
+  <head>
+    <!-- This is normal HTML, not under the scope of this doucment. -->
+    <title>PolymerMobileCodelab</title>
+
+    <!-- Also normal HTML, this is meta-data to tell some browsers we play nice with mobile. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <!-- Tada! Related code! this normal javascript include allows webcomponents
+      to work on browsers that don't support them (so... all of them). -->
+    <script src="bower_components/webcomponentsjs/webcomponents.js"></script>
+
+    <!-- This is strictly webcomponent specific. This is an 'html include'.
+      This is how we use custom components that exist in other files. -->
+    <link rel="import" href="codelab-app.html">
+  </head>
+
+  <!-- 'unresolved' is a little helper to prevent an awkward 'flash' of imporperly
+    formated stuff before polymer/webcomponents initializes in browsers that don't
+    have native support (which is, again, all of them. -->
+  <body unresolved>
+    <!-- A webcomponent! You can tell this was imported from 'codelab-app.html' because that's
+      the only import link so far. This style of importing is akin to the C/C++
+      #import linked_file`, or if you prefer, much like `from linked_file import *` in Python.
+      Personally, I prefer namespacing, but any issues around this could be well solved with
+      a drill-down feature in IDE's. -->
+    <codelab-app></codelab-app>
+  </body>
+</html>
